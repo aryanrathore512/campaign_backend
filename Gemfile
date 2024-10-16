@@ -48,3 +48,6 @@ group :development do
 end
 gem 'faker'
 gem 'rack-cors'
+gem 'kaminari'
+gem 'ransack'
+
