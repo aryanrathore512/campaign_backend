@@ -10,13 +10,27 @@ class Api::CampaignsController < ApplicationController
 	end
 
 	def create
-		@campaign = Campaign.new(campaign_params)
-		if @campaign.save
-			render json: @campaign, status: :created
-		else
-			render json: template.errors, status: :unprocessable_entity
-		end
+	  @campaign = Campaign.new(campaign_params.except(:selectedTemplateIds, :selectedContactIds))
+
+	  if @campaign.save
+	    if params[:selectedTemplateIds].present?
+	      params[:selectedTemplateIds].each do |template_id|
+	        CampaignTemplate.create(campaign_id: @campaign.id, template_id: template_id)
+	      end
+	    end
+
+	    if params[:selectedContactIds].present?
+	      params[:selectedContactIds].each do |contact_id|
+	        CampaignContact.create(campaign_id: @campaign.id, contact_id: contact_id)
+	      end
+	    end
+
+	    render json: @campaign, status: :created
+	  else
+	    render json: @campaign.errors, status: :unprocessable_entity
+	  end
 	end
+
 
 	private
 
