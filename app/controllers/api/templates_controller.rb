@@ -13,6 +13,17 @@ class Api::TemplatesController < ApplicationController
 		end
 	end
 
+	def update
+	  @template = Template.find(params[:id])
+
+	  if @template.update(template_params)
+	    render json: @template, status: :ok
+	  else
+	    render json: { errors: @template.errors.full_messages }, status: :unprocessable_entity
+	  end
+	end
+
+
 	private
 
 	def template_params
