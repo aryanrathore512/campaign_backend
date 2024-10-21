@@ -2,7 +2,15 @@ class Api::CampaignsController < ApplicationController
 	before_action :set_campaign, only: [:show]
 
 	def index
-		@campaigns = Campaign.page(params[:page]).per(params[:per_page] || 10)
+		status_filter = params[:status]
+		@campaigns = Campaign.all
+
+		if status_filter.present?
+			@campaigns = @campaigns.where(status: status_filter)
+		end
+
+		@campaigns = @campaigns.page(params[:page]).per(params[:per_page] || 10)
+
 		render json: @campaigns
 	end
 
@@ -11,11 +19,11 @@ class Api::CampaignsController < ApplicationController
 	end
 
 	def create
-		@campaign = Campaign.new(campaign_params)
+		@campaign = Campaign.new(campaign_params.except(:selectedTemplateIds, :selectedContactIds))
 
 		if @campaign.save
-			create_campaign_templates if params[:selectedTemplateIds].present?
-			create_campaign_contacts if params[:selectedContactIds].present?
+			create_campaign_templates if params[:campaign][:selectedTemplateIds].present?
+			create_campaign_contacts if params[:campaign][:selectedContactIds].present?
 
 			render json: @campaign, status: :created
 		else
@@ -26,7 +34,17 @@ class Api::CampaignsController < ApplicationController
 	private
 
 	def campaign_params
-		params.require(:campaign).permit(:name, :campaign_type, :status, :email_limit, :start_time, :end_time, :campaign_run_time)
+		params.require(:campaign).permit(
+			:name,
+			:campaign_type,
+			:status,
+			:email_limit,
+			:start_time,
+			:end_time,
+			:campaign_run_time,
+			selectedTemplateIds: [],
+			selectedContactIds: [],
+			)
 	end
 
 	def set_campaign
@@ -36,13 +54,13 @@ class Api::CampaignsController < ApplicationController
 	end
 
 	def create_campaign_templates
-		params[:selectedTemplateIds].each do |template_id|
+		params[:campaign][:selectedTemplateIds].each do |template_id|
 			CampaignTemplate.create!(campaign_id: @campaign.id, template_id: template_id)
 		end
 	end
 
 	def create_campaign_contacts
-		params[:selectedContactIds].each do |contact_id|
+		params[:campaign][:selectedContactIds].each do |contact_id|
 			CampaignContact.create!(campaign_id: @campaign.id, contact_id: contact_id)
 		end
 	end
