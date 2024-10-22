@@ -3,7 +3,8 @@
   <body>
     <h1><%= @greeting %></h1>
     <p>We are excited to inform you about our new campaign: <%= @campaign.name %></p>
-    <p>Details: <%= @campaign.campaign_type %></p>
+    <p>Your template is <%= @template %></p>
+    <p><%= @body.html_safe %></p>
     <p>Thank you!</p>
   </body>
 </html>
