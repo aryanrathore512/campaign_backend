@@ -1,0 +1,7 @@
+:scheduler:
+  :schedule:
+    send_campaign_emails:
+      every: 1.minute
+      class: CampaignEmailSenderJob
+      queue: default
+      args: []
