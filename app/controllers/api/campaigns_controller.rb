@@ -2,18 +2,18 @@ class Api::CampaignsController < ApplicationController
   before_action :set_campaign, only: [:show]
 
   def index
-    status_filter = params[:status]
-    @campaigns = Campaign.all
-
-    if status_filter.present?
-      @campaigns = @campaigns.where(status: status_filter)
-    end
-
     page = params[:page].presence || 1
     per_page = params[:per_page].presence || 10
 
-    @campaigns = @campaigns.page(page).per(per_page)
-    render json: @campaigns
+    @draft_campaigns = Campaign.where(status: false).page(page).per(per_page)
+    @initiate_campaigns = Campaign.where(status: true).page(page).per(per_page)
+
+    render json: {
+      draft_campaigns: @draft_campaigns,
+      initiate_campaigns: @initiate_campaigns,
+      total_draft_campaigns: @draft_campaigns.count,
+      total_initiate_campaigns: @initiate_campaigns.count
+    }
   end
 
   def show

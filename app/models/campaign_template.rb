@@ -1,4 +1,4 @@
 class CampaignTemplate < ApplicationRecord
-  belongs_to :campaign
-  belongs_to :template
+  belongs_to :campaign, optional: true
+  belongs_to :template, optional: true
 end
