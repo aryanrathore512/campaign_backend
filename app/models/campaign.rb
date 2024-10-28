@@ -26,9 +26,11 @@ class Campaign < ApplicationRecord
       contacts.each_slice(batch_size).with_index do |contact_batch, batch_index|
         batch_send_time = current_time + ((batch_index + 1) * self.campaign_run_time).hours
 
-        contact_batch.each do |contact_id|
-          templates.each do |template|
-            CampaignEmailSenderJob.perform_at(batch_send_time, contact_id, template.id)
+        if batch_send_time.between?(self.start_time, self.end_time)
+          contact_batch.each do |contact_id|
+            templates.each do |template|
+              CampaignEmailSenderJob.perform_at(batch_send_time, contact_id, template.id)
+            end
           end
         end
       end
