@@ -3,8 +3,8 @@ class Api::ContactsController < ApplicationController
     if params[:select_all] == 'true'
       select_all_contacts
     else
-      page = params[:page] || DEFAULT_PAGE
-      limit = params[:limit] || DEFAULT_CONTACTS_PER_PAGE
+      page = params[:page] || AppConstants::DEFAULT_PAGE
+      limit = params[:limit] || AppConstants::DEFAULT_PER_PAGE
 
       if params[:q].blank?
         contacts = Contact.page(page).per(limit)

@@ -2,7 +2,7 @@ class Api::TemplatesController < ApplicationController
   before_action :find_template, only: [:update]
 
   def index
-    @templates = Template.page(params[:page] || DEFAULT_PAGE).per(params[:per_page] || DEFAULT_PER_PAGE)
+    @templates = Template.page(params[:page] || AppConstants::DEFAULT_PAGE).per(params[:per_page] || AppConstants::DEFAULT_PER_PAGE)
     render json: @templates
   end
 

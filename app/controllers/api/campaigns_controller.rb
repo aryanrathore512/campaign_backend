@@ -2,8 +2,8 @@ class Api::CampaignsController < ApplicationController
   before_action :set_campaign, only: [:show, :update_status]
 
   def index
-    page = params[:page].presence || DEFAULT_PAGE
-    per_page = params[:per_page].presence || DEFAULT_PER_PAGE
+    page = params[:page].presence || AppConstants::DEFAULT_PAGE
+    per_page = params[:per_page].presence || AppConstants::DEFAULT_PER_PAGE
 
     campaigns = Campaign.page(page).per(per_page)
     total_campaigns = Campaign.count
