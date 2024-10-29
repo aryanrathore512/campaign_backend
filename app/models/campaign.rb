@@ -1,4 +1,6 @@
 class Campaign < ApplicationRecord
+  include AASM
+
   has_many :campaign_templates
   has_many :templates, through: :campaign_templates
   has_many :campaign_contacts
@@ -14,10 +16,33 @@ class Campaign < ApplicationRecord
 
   after_commit :schedule_email_job
 
+  aasm column: 'status' do
+    state :draft, initial: true
+    state :saved
+    state :pause
+    state :disabled
+
+    event :save_campaign do
+      transitions from: :draft, to: :saved
+    end
+
+    event :pause_campaign do
+      transitions from: :saved, to: :pause
+    end
+
+    event :resume_campaign do
+      transitions from: :pause, to: :saved
+    end
+
+    event :disable_campaign do
+      transitions from: [:saved, :pause], to: :disabled
+    end
+  end
+
   private
 
   def schedule_email_job
-    if self.saved_changed?
+    if aasm.current_state == :saved
       contacts = self.contacts.pluck(:id)
       templates = self.templates
       batch_size = self.batch_contact
@@ -25,7 +50,6 @@ class Campaign < ApplicationRecord
 
       contacts.each_slice(batch_size).with_index do |contact_batch, batch_index|
         batch_send_time = current_time + ((batch_index + 1) * self.campaign_run_time).hours
-
         if batch_send_time.between?(self.start_time, self.end_time)
           contact_batch.each do |contact_id|
             templates.each do |template|

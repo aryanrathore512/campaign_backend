@@ -3,8 +3,8 @@ class Api::ContactsController < ApplicationController
     if params[:select_all] == 'true'
       select_all_contacts
     else
-      page = params[:page].presence || 1
-      limit = params[:limit].presence || 10
+      page = params[:page] || DEFAULT_PAGE
+      limit = params[:limit] || DEFAULT_CONTACTS_PER_PAGE
 
       if params[:q].blank?
         contacts = Contact.page(page).per(limit)
@@ -12,7 +12,7 @@ class Api::ContactsController < ApplicationController
       else
         q = Contact.ransack(params[:q])
         contacts = q.result.page(page).per(limit)
-        total = contacts.total_count
+        total = contacts.count
       end
 
       render json: { contacts: contacts, total: total }

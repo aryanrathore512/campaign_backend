@@ -42,9 +42,13 @@ group :development, :test do
   gem "debug", platforms: %i[ mri mingw x64_mingw ]
   gem "letter_opener"
   gem 'faker'
+  gem 'rspec-rails'
+  gem 'factory_bot_rails'
+  gem 'simplecov', require: false
 end
 gem 'rack-cors'
 gem 'kaminari'
 gem 'ransack'
 gem 'sidekiq'
 gem 'sidekiq-scheduler'
+gem 'aasm'
