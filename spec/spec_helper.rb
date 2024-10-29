@@ -14,8 +14,6 @@
 #
 
 require 'simplecov'
-require 'database_cleaner'
-
 
 SimpleCov.start do
   add_filter "/spec/"
@@ -44,20 +42,6 @@ RSpec.configure do |config|
     # a real object. This is generally recommended, and will default to
     # `true` in RSpec 4.
     mocks.verify_partial_doubles = true
-  end
-
-  config.before(:suite) do
-    DatabaseCleaner.clean_with(:truncation) # Clean the database before running the tests
-    DatabaseCleaner.strategy = :transaction # Use transactions for faster tests
-  end
-
-  # Start and clean up after each test
-  config.before(:each) do
-    DatabaseCleaner.start
-  end
-
-  config.after(:each) do
-    DatabaseCleaner.clean
   end
 
   # This option will default to `:apply_to_host_groups` in RSpec 4 (and will

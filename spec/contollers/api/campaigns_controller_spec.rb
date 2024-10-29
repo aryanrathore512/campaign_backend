@@ -14,7 +14,7 @@ RSpec.describe Api::CampaignsController, type: :controller do
       expect(json_response['all_campaigns'].size)
       expect(json_response['total_campaigns']).to eq(Campaign.count)
       expect(json_response['current_page']).to eq(1)
-      expect(json_response['per_page']).to eq(10)
+      expect(json_response['per_page']).to eq(20)
     end
   end
 
@@ -89,6 +89,17 @@ RSpec.describe Api::CampaignsController, type: :controller do
 
         expect(json_response['error']).to eq('Cannot transition to saved from current state or already saved')
       end
+
+      it 'returns unprocessable entity if saving fails' do
+        allow_any_instance_of(Campaign).to receive(:save_campaign!).and_return(false)
+        allow_any_instance_of(Campaign).to receive(:errors).and_return(double(full_messages: ['Save failed']))
+
+        patch :update_status, params: { id: campaign.id, status: 'saved' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['error']).to include('Save failed')
+      end
     end
 
     context 'when pausing a campaign' do
@@ -104,6 +115,17 @@ RSpec.describe Api::CampaignsController, type: :controller do
         json_response = JSON.parse(response.body)
 
         expect(json_response['error']).to eq('Cannot pause campaign from current state or already paused')
+      end
+
+      it 'returns unprocessable entity if pausing fails' do
+        allow_any_instance_of(Campaign).to receive(:pause_campaign!).and_return(false)
+        allow_any_instance_of(Campaign).to receive(:errors).and_return(double(full_messages: ['Pause failed']))
+
+        patch :update_status, params: { id: campaign_saved.id, status: 'pause' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['error']).to include('Pause failed')
       end
     end
 
@@ -121,6 +143,17 @@ RSpec.describe Api::CampaignsController, type: :controller do
 
         expect(json_response['error']).to eq('Cannot resume campaign from current state')
       end
+
+      it 'returns unprocessable entity if resuming fails' do
+        allow_any_instance_of(Campaign).to receive(:resume_campaign!).and_return(false)
+        allow_any_instance_of(Campaign).to receive(:errors).and_return(double(full_messages: ['Resume failed']))
+
+        patch :update_status, params: { id: campaign_paused.id, status: 'resume' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['error']).to include('Resume failed')
+      end
     end
 
     context 'when disabling a campaign' do
@@ -136,6 +169,27 @@ RSpec.describe Api::CampaignsController, type: :controller do
         json_response = JSON.parse(response.body)
 
         expect(json_response['error']).to eq('Cannot disable campaign from current state')
+      end
+
+      it 'returns unprocessable entity if disabling fails' do
+        allow_any_instance_of(Campaign).to receive(:disable_campaign!).and_return(false)
+        allow_any_instance_of(Campaign).to receive(:errors).and_return(double(full_messages: ['Disable failed']))
+
+        patch :update_status, params: { id: campaign_saved.id, status: 'disable' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['error']).to include('Disable failed')
+      end
+    end
+
+    context 'when an invalid status is provided' do
+      it 'returns an unprocessable entity error' do
+        patch :update_status, params: { id: campaign.id, status: 'invalid_status' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['error']).to eq('Invalid status transition')
       end
     end
   end
