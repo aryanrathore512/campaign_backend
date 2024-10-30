@@ -3,7 +3,7 @@ Rails.application.routes.draw do
     resources :templates, only: [:index, :create, :show, :update, :destroy]
     resources :campaigns, only: [:index, :create, :show, :update, :destroy] do
       member do
-        post :update_status
+        patch :update_status
       end
     end
     resources :contacts, only: [:index] do

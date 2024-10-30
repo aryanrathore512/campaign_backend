@@ -1,5 +1,5 @@
 class Api::TemplatesController < ApplicationController
-  before_action :find_template, only: [:update]
+  before_action :set_template, only: [:update]
 
   def index
     @templates = Template.page(params[:page] || AppConstants::DEFAULT_PAGE).per(params[:per_page] || AppConstants::DEFAULT_PER_PAGE)
@@ -30,7 +30,7 @@ class Api::TemplatesController < ApplicationController
     params.require(:template).permit(:title, :body)
   end
 
-  def find_template
+  def set_template
     @template = Template.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render json: { error: 'Template not found' }, status: :not_found

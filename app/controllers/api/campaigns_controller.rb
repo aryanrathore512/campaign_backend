@@ -6,7 +6,7 @@ class Api::CampaignsController < ApplicationController
     per_page = params[:per_page].presence || AppConstants::DEFAULT_PER_PAGE
 
     campaigns = Campaign.page(page).per(per_page)
-    total_campaigns = Campaign.count
+    total_campaigns = campaigns.count
 
     render json: {
       all_campaigns: campaigns,
@@ -16,52 +16,18 @@ class Api::CampaignsController < ApplicationController
     }
   end
 
-  def update_status
-    case params[:status]
-    when "saved"
-      if @campaign.aasm.current_state == :draft
-        if @campaign.save_campaign!
-          render json: @campaign
+    def update_status
+      event = params[:campaign][:status].to_sym
+      if @campaign.aasm.events.map(&:name).include?(event)
+        if @campaign.send("#{event}!")
+          render json: { message: "Campaign status updated successfully", campaign: @campaign }, status: :ok
         else
           render json: { error: @campaign.errors.full_messages }, status: :unprocessable_entity
         end
       else
-        render json: { error: 'Cannot transition to saved from current state or already saved' }, status: :unprocessable_entity
+        render json: { error: "Invalid status transition" }, status: :unprocessable_entity
       end
-    when "pause"
-      if @campaign.aasm.current_state == :saved
-        if @campaign.pause_campaign!
-          render json: @campaign
-        else
-          render json: { error: @campaign.errors.full_messages }, status: :unprocessable_entity
-        end
-      else
-        render json: { error: 'Cannot pause campaign from current state or already paused' }, status: :unprocessable_entity
-      end
-    when "resume"
-      if @campaign.aasm.current_state == :pause
-        if @campaign.resume_campaign!
-          render json: @campaign
-        else
-          render json: { error: @campaign.errors.full_messages }, status: :unprocessable_entity
-        end
-      else
-        render json: { error: 'Cannot resume campaign from current state' }, status: :unprocessable_entity
-      end
-    when "disable"
-      if @campaign.aasm.current_state == :saved || @campaign.aasm.current_state == :pause
-        if @campaign.disable_campaign!
-          render json: @campaign
-        else
-          render json: { error: @campaign.errors.full_messages }, status: :unprocessable_entity
-        end
-      else
-        render json: { error: 'Cannot disable campaign from current state' }, status: :unprocessable_entity
-      end
-    else
-      render json: { error: 'Invalid status transition' }, status: :unprocessable_entity
     end
-  end
 
   def show
     render json: @campaign

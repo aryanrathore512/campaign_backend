@@ -16,30 +16,40 @@ class Campaign < ApplicationRecord
 
   after_commit :schedule_email_job
 
+  validate :start_time_must_be_before_end_time
+
   aasm column: 'status' do
     state :draft, initial: true
-    state :saved
+    state :initiated
     state :pause
     state :disabled
 
-    event :save_campaign do
-      transitions from: :draft, to: :saved
+    event :initiate_campaign do
+      transitions from: :draft, to: :initiated
     end
 
     event :pause_campaign do
-      transitions from: :saved, to: :pause
+      transitions from: :initiated, to: :pause
     end
 
     event :resume_campaign do
-      transitions from: :pause, to: :saved
+      transitions from: :pause, to: :initiated
     end
 
     event :disable_campaign do
-      transitions from: [:saved, :pause], to: :disabled
+      transitions from: [:initiated, :pause], to: :disabled
     end
   end
 
   private
+
+  def start_time_must_be_before_end_time
+    return if start_time.blank? || end_time.blank?
+
+    if start_time >= end_time
+      errors.add(:start_time, 'must be less than End time')
+    end
+  end
 
   def schedule_email_job
     if aasm.current_state == :saved

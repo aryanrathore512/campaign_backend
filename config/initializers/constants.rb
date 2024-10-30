@@ -1,4 +1,5 @@
 module AppConstants
-  DEFAULT_PAGE = 10
+  DEFAULT_PAGE = 1
   DEFAULT_PER_PAGE = 20
+  DEFAULT_CONTACTS_PER_PAGE = 20
 end

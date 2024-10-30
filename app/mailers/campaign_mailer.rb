@@ -7,12 +7,17 @@ class CampaignMailer < ApplicationMailer
     @template = template
     @greeting = "Hello #{@contact.name},"
 
-    if @template.body.include?('{{name}}') || @template.body.include?('{{address}}')
-      @body = @template.body.gsub("{{name}}", @contact.name).gsub("{{address}}", @contact.address)
-    else
-      @body = @template.body
-    end
+    email_body = dynamic_template_body(@template.body)
 
-    mail(to: @contact.email, subject: @campaign.name)
+    mail(to: @contact.email, subject: 'Your Campaign Email') do |format|
+      format.html { render html: email_body.html_safe }
+    end
+  end
+
+  private
+
+  def dynamic_template_body(body)
+    body.gsub('{{name}}', @contact.name)
+        .gsub('{{address}}', @contact.address || 'N/A')
   end
 end
