@@ -6,17 +6,8 @@ class Campaign < ApplicationRecord
   has_many :campaign_contacts
   has_many :contacts, through: :campaign_contacts
 
-  validates :name, presence: { message: 'Campaign name is required' }
-  validates :campaign_type, presence: { message: 'Campaign type is required' }
-  validates :email_limit, presence: { message: 'Email limit is required' }
-  validates :start_time, presence: { message: 'Start time is required' }
-  validates :end_time, presence: { message: 'End time is required' }
-  validates :campaign_run_time, presence: { message: 'Campaign run time is required' }
-  validates :batch_contact, presence: { message: 'Campaign batch contact is required' }
-
   after_commit :schedule_email_job
 
-  validate :start_time_must_be_before_end_time
 
   aasm column: 'status' do
     state :draft, initial: true
@@ -37,34 +28,54 @@ class Campaign < ApplicationRecord
     end
 
     event :disable_campaign do
-      transitions from: [:initiated, :pause], to: :disabled
+      transitions from: [:draft, :initiated, :pause], to: :disabled
+    end
+
+    event :reactivate_campaign do
+      transitions from: :disabled, to: :initiated
+    end
+
+    event :return_to_pause do
+      transitions from: :disabled, to: :pause
     end
   end
 
   private
 
-  def start_time_must_be_before_end_time
-    return if start_time.blank? || end_time.blank?
-
-    if start_time >= end_time
-      errors.add(:start_time, 'must be less than End time')
-    end
-  end
-
   def schedule_email_job
-    if aasm.current_state == :saved
-      contacts = self.contacts.pluck(:id)
-      templates = self.templates
-      batch_size = self.batch_contact
-      current_time = Time.current.utc
+    return unless aasm.current_state == :initiated
 
-      contacts.each_slice(batch_size).with_index do |contact_batch, batch_index|
-        batch_send_time = current_time + ((batch_index + 1) * self.campaign_run_time).hours
-        if batch_send_time.between?(self.start_time, self.end_time)
-          contact_batch.each do |contact_id|
-            templates.each do |template|
-              CampaignEmailSenderJob.perform_at(batch_send_time, contact_id, template.id)
-            end
+    campaign_contact_ids = contacts.pluck(:id)
+    campaign_templates = templates
+    batch_size = batch_contact
+    current_time = Time.current.utc
+
+    template_start_index = last_sent_template_index || 0
+    contact_start_index = last_sent_contact_index || 0
+
+    campaign_templates.each_with_index do |template, template_index|
+      next if template_index < template_start_index
+
+      contact_batches = campaign_contact_ids.each_slice(batch_size).to_a
+
+      contact_batches.each_with_index do |contact_batch, batch_index|
+        if template_index == template_start_index
+          contact_batch = contact_batch[contact_start_index..-1]
+        end
+
+        batch_send_time = current_time + (batch_index * campaign_run_time).hours
+
+        if template_index > 0
+          interval = interval_after_first_template * template_index
+          batch_send_time += interval.days
+        end
+
+        if batch_send_time.between?(start_time, end_time)
+          contact_batch.each_with_index do |contact_id, contact_idx|
+            CampaignEmailSenderJob.perform_at(batch_send_time, contact_id, template.id)
+
+            update_columns(last_sent_template_index: template_index,
+                           last_sent_contact_index: contact_idx)
           end
         end
       end
