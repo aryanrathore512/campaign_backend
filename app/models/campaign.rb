@@ -49,6 +49,7 @@ class Campaign < ApplicationRecord
     campaign_templates = templates
     batch_size = batch_contact
     current_time = Time.current.utc
+    emails_scheduled_today = 0
 
     template_start_index = last_sent_template_index || 0
     contact_start_index = last_sent_contact_index || 0
@@ -59,7 +60,7 @@ class Campaign < ApplicationRecord
       contact_batches = campaign_contact_ids.each_slice(batch_size).to_a
 
       contact_batches.each_with_index do |contact_batch, batch_index|
-        if template_index == template_start_index
+        if template_index == template_start_index && batch_index == 0
           contact_batch = contact_batch[contact_start_index..-1]
         end
 
@@ -70,12 +71,21 @@ class Campaign < ApplicationRecord
           batch_send_time += interval.days
         end
 
+        if emails_scheduled_today >= email_limit
+          current_time = current_time.beginning_of_day + 1.day
+          emails_scheduled_today = 0
+          next
+        end
+
         if batch_send_time.between?(start_time, end_time)
           contact_batch.each_with_index do |contact_id, contact_idx|
             CampaignEmailSenderJob.perform_at(batch_send_time, contact_id, template.id)
+            emails_scheduled_today += 1
 
             update_columns(last_sent_template_index: template_index,
                            last_sent_contact_index: contact_idx)
+
+            break if emails_scheduled_today >= email_limit
           end
         end
       end
