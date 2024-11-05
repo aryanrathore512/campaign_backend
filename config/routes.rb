@@ -1,6 +1,15 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Defines the root path route ("/")
-  # root "articles#index"
+  namespace :api do
+    resources :templates, only: [:index, :create, :show, :update, :destroy]
+    resources :campaigns, only: [:index, :create, :show, :update, :destroy] do
+      member do
+        patch :update_status
+      end
+    end
+    resources :contacts, only: [:index] do
+      collection do
+        get :selected_contacts
+      end
+    end
+  end
 end
